@@ -1,21 +1,17 @@
 import api from "./api";
 
 class ContentService {
-  getContent(params = {}) {
+  getPosts(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return api.get(`/admin/content${query ? `?${query}` : ""}`);
+    return api.get(`/posts/admin/all${query ? `?${query}` : ""}`);
   }
 
-  getContentById(id) {
-    return api.get(`/admin/content/${id}`);
+  approvePost(id) {
+    return api.put(`/posts/admin/${id}/approve`);
   }
 
-  approveContent(id) {
-    return api.patch(`/admin/content/${id}/approve`);
-  }
-
-  removeContent(id) {
-    return api.delete(`/admin/content/${id}`);
+  rejectPost(id, reason) {
+    return api.put(`/posts/admin/${id}/reject`, { reason });
   }
 }
 

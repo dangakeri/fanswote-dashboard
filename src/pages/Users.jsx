@@ -4,7 +4,6 @@ import {
 } from "lucide-react";
 import { useUsers, useUpdateRole } from "../hooks/useUsers";
 import { useToast } from "../context/ToastContext";
-import { usersData as mockUsers } from "../data/mockData";
 
 const roleColors = {
   user: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10",
@@ -75,14 +74,14 @@ export default function UsersPage() {
   const { data, isLoading } = useUsers({ page, limit: 20 });
   const updateRoleMutation = useUpdateRole();
 
-  const users = data?.users || mockUsers;
+  const users = data?.users || [];
   const totalPages = data?.totalPages || 1;
   const total = data?.total || users.length;
 
   const filtered = users.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase()) ||
+      (user.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (user.email || "").toLowerCase().includes(search.toLowerCase()) ||
       (user.username && user.username.toLowerCase().includes(search.toLowerCase()));
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     return matchesSearch && matchesRole;
