@@ -1,13 +1,17 @@
 import api from "./api";
 
 class UserService {
+  // Admin-only endpoints
   getUsers(params = {}) {
-    const query = new URLSearchParams(params).toString();
-    return api.get(`/auth/all-users${query ? `?${query}` : ""}`);
+    return api.get(`/auth/all-users${api.buildQuery(params)}`);
   }
 
   updateRole(id, role) {
     return api.put(`/auth/update-role/${id}`, { role });
+  }
+
+  deleteUser(id) {
+    return api.delete(`/auth/delete-user/${id}`);
   }
 }
 

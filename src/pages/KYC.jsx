@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { useKycSubmissions, useApproveKyc, useRejectKyc } from "../hooks/useKyc";
 import { useToast } from "../context/ToastContext";
-import { kycData as mockKyc } from "../data/mockData";
+import Avatar from "../components/Avatar";
 
 const API_BASE = "https://api.fanswote.com";
 
@@ -124,9 +124,12 @@ function KYCCard({ submission, onApprove, onReject, isApproving, isRejecting }) 
           onClick={() => setExpanded(!expanded)}
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center shrink-0">
-              {submission.name.split(" ").map((n) => n[0]).join("")}
-            </div>
+            <Avatar
+              src={submission.avatar_url}
+              name={submission.name}
+              username={submission.username}
+              size={36}
+            />
             <div>
               <p className="font-medium text-text dark:text-d-text text-[13px]">{submission.name}</p>
               <p className="text-[11px] text-text-muted dark:text-d-text-muted">{submission.email}</p>
@@ -249,7 +252,7 @@ export default function KYCPage() {
   const approveMutation = useApproveKyc();
   const rejectMutation = useRejectKyc();
 
-  const submissions = apiSubmissions || mockKyc;
+  const submissions = apiSubmissions || [];
 
   const filtered = submissions.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || item.email.toLowerCase().includes(search.toLowerCase());

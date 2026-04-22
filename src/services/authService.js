@@ -4,7 +4,6 @@ class AuthService {
   async login(email, password) {
     const data = await api.publicPost("/auth/login", { email, password });
 
-    // Store user + token together
     api.setUser({
       id: data.user.id,
       name: data.user.name,
@@ -14,6 +13,19 @@ class AuthService {
     });
 
     return data;
+  }
+
+  // Admin user management
+  deleteUser(id) {
+    return api.delete(`/auth/delete-user/${id}`);
+  }
+
+  updateRole(id, role) {
+    return api.put(`/auth/update-role/${id}`, { role });
+  }
+
+  listAllUsers() {
+    return api.get("/auth/all-users");
   }
 
   logout() {

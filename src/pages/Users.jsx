@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import { useUsers, useUpdateRole } from "../hooks/useUsers";
 import { useToast } from "../context/ToastContext";
+import Avatar from "../components/Avatar";
 
 const roleColors = {
   user: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10",
@@ -12,11 +13,6 @@ const roleColors = {
 };
 
 const roles = ["user", "creator", "admin"];
-
-const avatarColors = [
-  "bg-blue-500", "bg-violet-500", "bg-pink-500", "bg-emerald-500", "bg-amber-500",
-  "bg-cyan-500", "bg-red-500", "bg-indigo-500", "bg-fuchsia-500", "bg-teal-500",
-];
 
 function RoleDropdown({ user, onChangeRole, isUpdating }) {
   const [open, setOpen] = useState(false);
@@ -150,17 +146,17 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((user, index) => (
+                {filtered.map((user) => (
                   <tr key={user.id} className="border-t border-border dark:border-d-border hover:bg-hover dark:hover:bg-d-hover transition-colors group">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        {user.avatar_url ? (
-                          <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
-                        ) : (
-                          <div className={`w-9 h-9 rounded-full ${avatarColors[index % avatarColors.length]} text-white text-[11px] font-bold flex items-center justify-center shrink-0`}>
-                            {user.name.split(" ").map((n) => n[0]).join("")}
-                          </div>
-                        )}
+                        <Avatar
+                          src={user.avatar_url}
+                          name={user.name}
+                          username={user.username}
+                          size={36}
+                          tone="colored"
+                        />
                         <div className="min-w-0">
                           <p className="font-medium text-text dark:text-d-text text-[13px]">{user.name}</p>
                           <p className="text-[11px] text-text-muted dark:text-d-text-muted">

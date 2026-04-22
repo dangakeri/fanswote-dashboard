@@ -1,147 +1,228 @@
 import { useState } from "react";
 import {
-  Search, Gift, Plus, X, Loader2, Image, Type, DollarSign, Zap,
-  CheckCircle, XCircle,
+  Search,
+  Gift,
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  X,
+  Upload,
+  Coins,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
-import { useGifts, useCreateGift } from "../hooks/useGifts";
+import {
+  useGifts,
+  useCreateGift,
+  useUpdateGift,
+  useToggleGift,
+  useDeleteGift,
+} from "../hooks/useGifts";
 import { useToast } from "../context/ToastContext";
 
-const animationTypes = ["bounce", "shake", "pulse", "spin", "float", "none"];
+const API_BASE = "https://api.fanswote.com";
 
-function CreateGiftModal({ open, onClose }) {
-  const [form, setForm] = useState({ name: "", icon_url: "", animation_type: "bounce", price: "" });
-  const [error, setError] = useState("");
-  const toast = useToast();
-  const createMutation = useCreateGift();
+const resolveIconUrl = (raw) => {
+  if (!raw || typeof raw !== "string") return null;
+  if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:")) return raw;
+  return `${API_BASE}${raw.startsWith("/") ? "" : "/"}${raw}`;
+};
+
+function GiftImage({ src, alt, size = 48 }) {
+  const [failed, setFailed] = useState(false);
+  const url = resolveIconUrl(src);
+
+  if (!url || failed) {
+    return (
+      <div
+        style={{ width: size, height: size }}
+        className="rounded-lg bg-page dark:bg-d-elevated border border-border dark:border-d-border flex items-center justify-center shrink-0"
+      >
+        <Gift size={size * 0.45} className="text-text-muted/40 dark:text-d-text-muted/40" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={url}
+      alt={alt}
+      onError={() => setFailed(true)}
+      style={{ width: size, height: size }}
+      className="rounded-lg object-cover bg-page dark:bg-d-elevated border border-border dark:border-d-border shrink-0"
+    />
+  );
+}
+
+function GiftFormModal({ open, onClose, initial, onSubmit, isSaving }) {
+  const [form, setForm] = useState(() => ({
+    name: initial?.name || "",
+    price: initial?.price ?? "",
+    animation_type: initial?.animation_type || initial?.animationType || "none",
+    is_active: initial?.is_active ?? initial?.isActive ?? true,
+    icon: null,
+  }));
+  const iconUrl = initial?.icon_url || initial?.iconUrl;
+  const [preview, setPreview] = useState(resolveIconUrl(iconUrl));
 
   if (!open) return null;
 
-  const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setError("");
+  const handleFile = (file) => {
+    if (!file) return;
+    setForm((f) => ({ ...f, icon: file }));
+    setPreview(URL.createObjectURL(file));
   };
 
-  const handleSubmit = () => {
-    if (!form.name.trim()) return setError("Name is required");
-    if (!form.icon_url.trim()) return setError("Icon URL is required");
-    if (!form.price || Number(form.price) <= 0) return setError("Price must be greater than 0");
-
-    createMutation.mutate(
-      {
-        name: form.name.trim(),
-        icon_url: form.icon_url.trim(),
-        animation_type: form.animation_type,
-        price: form.price,
-      },
-      {
-        onSuccess: () => {
-          setForm({ name: "", icon_url: "", animation_type: "bounce", price: "" });
-          onClose();
-          toast.success("Gift created successfully");
-        },
-        onError: (err) => {
-          setError(err.message || "Failed to create gift");
-          toast.error(err.message || "Failed to create gift");
-        },
-      },
-    );
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = {
+      name: form.name,
+      price: Number(form.price),
+      animation_type: form.animation_type,
+      is_active: form.is_active,
+    };
+    if (form.icon) payload.icon = form.icon;
+    onSubmit(payload);
   };
 
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border shadow-xl w-full max-w-md p-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Gift size={20} className="text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-text dark:text-d-text">Create Gift</h3>
-              <p className="text-xs text-text-muted dark:text-d-text-muted">Add a new virtual gift</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-text-muted dark:text-d-text-muted hover:bg-hover dark:hover:bg-d-hover transition-colors">
-            <X size={18} />
+      <div className="relative bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border dark:border-d-border">
+          <h3 className="text-[15px] font-semibold text-text dark:text-d-text">
+            {initial ? "Edit gift" : "New gift"}
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-text-muted dark:text-d-text-muted hover:bg-hover dark:hover:bg-d-hover"
+          >
+            <X size={16} />
           </button>
         </div>
 
-        {error && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-500/15 text-[13px] text-red-600 dark:text-red-400">
-            <XCircle size={14} className="shrink-0" />
-            {error}
+        <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
+          {/* Icon uploader */}
+          <div className="flex items-center gap-4">
+            {preview ? (
+              <img
+                src={preview}
+                alt="preview"
+                className="w-16 h-16 rounded-lg object-cover border border-border dark:border-d-border"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-lg bg-page dark:bg-d-elevated border border-border dark:border-d-border flex items-center justify-center">
+                <Gift size={22} className="text-text-muted/40 dark:text-d-text-muted/40" />
+              </div>
+            )}
+            <label className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border dark:border-d-border text-[13px] font-medium text-text dark:text-d-text cursor-pointer hover:bg-hover dark:hover:bg-d-hover transition-colors">
+              <Upload size={14} />
+              {preview ? "Change icon" : "Upload icon"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFile(e.target.files?.[0])}
+              />
+            </label>
           </div>
-        )}
 
-        <div className="space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block text-[11px] uppercase tracking-wider text-text-muted dark:text-d-text-muted font-medium mb-1.5">Name</label>
-            <div className="relative">
-              <Type size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted dark:text-d-text-muted" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-[11px] uppercase tracking-wider text-text-muted dark:text-d-text-muted font-medium">
+                Name
+              </label>
               <input
                 type="text"
+                required
                 value={form.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                placeholder="e.g. Super Heart"
-                className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-page dark:bg-d-elevated text-text dark:text-d-text placeholder-text-muted dark:placeholder-d-text-muted border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg text-sm bg-page dark:bg-d-elevated text-text dark:text-d-text border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                placeholder="Rose"
               />
             </div>
-          </div>
-
-          {/* Icon URL */}
-          <div>
-            <label className="block text-[11px] uppercase tracking-wider text-text-muted dark:text-d-text-muted font-medium mb-1.5">Icon URL</label>
-            <div className="relative">
-              <Image size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted dark:text-d-text-muted" />
-              <input
-                type="url"
-                value={form.icon_url}
-                onChange={(e) => handleChange("icon_url", e.target.value)}
-                placeholder="https://example.com/icon.png"
-                className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-page dark:bg-d-elevated text-text dark:text-d-text placeholder-text-muted dark:placeholder-d-text-muted border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Animation Type */}
-          <div>
-            <label className="block text-[11px] uppercase tracking-wider text-text-muted dark:text-d-text-muted font-medium mb-1.5">Animation</label>
-            <div className="flex flex-wrap gap-1.5">
-              {animationTypes.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => handleChange("animation_type", type)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize ${
-                    form.animation_type === type
-                      ? "bg-primary text-white"
-                      : "bg-page dark:bg-d-elevated text-text-muted dark:text-d-text-muted border border-border dark:border-d-border hover:text-text dark:hover:text-d-text"
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Price */}
-          <div>
-            <label className="block text-[11px] uppercase tracking-wider text-text-muted dark:text-d-text-muted font-medium mb-1.5">Price (coins)</label>
-            <div className="relative">
-              <DollarSign size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted dark:text-d-text-muted" />
+            <div className="space-y-1.5">
+              <label className="block text-[11px] uppercase tracking-wider text-text-muted dark:text-d-text-muted font-medium">
+                Price (coins)
+              </label>
               <input
                 type="number"
-                min="1"
+                min={0}
+                step={1}
+                required
                 value={form.price}
-                onChange={(e) => handleChange("price", e.target.value)}
-                placeholder="e.g. 9"
-                className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-page dark:bg-d-elevated text-text dark:text-d-text placeholder-text-muted dark:placeholder-d-text-muted border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg text-sm bg-page dark:bg-d-elevated text-text dark:text-d-text border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                placeholder="10"
               />
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 justify-end pt-1">
+          <div className="space-y-1.5">
+            <label className="block text-[11px] uppercase tracking-wider text-text-muted dark:text-d-text-muted font-medium">
+              Animation
+            </label>
+            <select
+              value={form.animation_type}
+              onChange={(e) => setForm({ ...form, animation_type: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg text-sm bg-page dark:bg-d-elevated text-text dark:text-d-text border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+            >
+              <option value="none">None</option>
+              <option value="float">Float</option>
+              <option value="burst">Burst</option>
+              <option value="shake">Shake</option>
+              <option value="fireworks">Fireworks</option>
+            </select>
+          </div>
+
+          <label className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border dark:border-d-border">
+            <div>
+              <p className="text-[13px] font-medium text-text dark:text-d-text">Active</p>
+              <p className="text-[11px] text-text-muted dark:text-d-text-muted">Gift is available to users</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={form.is_active}
+              onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+              className="accent-primary w-4 h-4"
+            />
+          </label>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg border border-border dark:border-d-border text-text-secondary dark:text-d-text-secondary text-[13px] font-medium hover:bg-hover dark:hover:bg-d-hover transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {isSaving && <Loader2 size={14} className="animate-spin" />}
+              {initial ? "Save changes" : "Create gift"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmDeleteModal({ open, name, onClose, onConfirm, isLoading }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border shadow-xl w-full max-w-sm p-6">
+        <h3 className="text-[15px] font-semibold text-text dark:text-d-text">Delete gift?</h3>
+        <p className="text-sm text-text-muted dark:text-d-text-muted mt-1">
+          {name ? `"${name}" will be removed.` : "This gift will be removed."} This action cannot be undone.
+        </p>
+        <div className="flex justify-end gap-2 mt-5">
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg border border-border dark:border-d-border text-text-secondary dark:text-d-text-secondary text-[13px] font-medium hover:bg-hover dark:hover:bg-d-hover transition-colors"
@@ -149,12 +230,12 @@ function CreateGiftModal({ open, onClose }) {
             Cancel
           </button>
           <button
-            onClick={handleSubmit}
-            disabled={createMutation.isPending}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
           >
-            {createMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-            Create Gift
+            {isLoading && <Loader2 size={14} className="animate-spin" />}
+            Delete
           </button>
         </div>
       </div>
@@ -162,72 +243,116 @@ function CreateGiftModal({ open, onClose }) {
   );
 }
 
-function GiftCard({ gift }) {
-  return (
-    <div className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border p-5 hover:border-primary/30 transition-all group">
-      <div className="flex items-start justify-between mb-4">
-        <div className="w-14 h-14 rounded-xl bg-page dark:bg-d-elevated border border-border dark:border-d-border flex items-center justify-center overflow-hidden">
-          {gift.icon_url ? (
-            <img src={gift.icon_url} alt={gift.name} className="w-10 h-10 object-contain" />
-          ) : (
-            <Gift size={24} className="text-text-muted/30 dark:text-d-text-muted/30" />
-          )}
-        </div>
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full ${
-          gift.is_active
-            ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"
-        }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${gift.is_active ? "bg-emerald-500" : "bg-red-500"}`} />
-          {gift.is_active ? "Active" : "Inactive"}
-        </span>
-      </div>
-
-      <h3 className="font-semibold text-text dark:text-d-text text-[15px] mb-1">{gift.name}</h3>
-
-      <div className="flex items-center gap-3 text-[12px] text-text-muted dark:text-d-text-muted">
-        <span className="flex items-center gap-1">
-          <DollarSign size={12} />
-          {gift.price} coins
-        </span>
-        <span className="flex items-center gap-1 capitalize">
-          <Zap size={12} />
-          {gift.animation_type}
-        </span>
-      </div>
-
-      <p className="text-[11px] text-text-muted dark:text-d-text-muted mt-3">
-        Created {new Date(gift.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-      </p>
-    </div>
-  );
-}
-
 export default function GiftsPage() {
   const [search, setSearch] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
-  const { data: giftsData, isLoading } = useGifts();
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
 
-  const gifts = giftsData || [];
+  const toast = useToast();
+  const { data: gifts, isLoading } = useGifts();
+  const createMutation = useCreateGift();
+  const updateMutation = useUpdateGift();
+  const toggleMutation = useToggleGift();
+  const deleteMutation = useDeleteGift();
 
-  const filtered = gifts.filter((gift) =>
-    gift.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const list = (gifts || []).filter((g) => {
+    const name = (g.name || "").toLowerCase();
+    const matchesSearch = name.includes(search.toLowerCase());
+    const active = g.is_active ?? g.isActive ?? true;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && active) ||
+      (statusFilter === "inactive" && !active);
+    return matchesSearch && matchesStatus;
+  });
 
-  const activeCount = gifts.filter((g) => g.is_active).length;
+  const counts = {
+    total: gifts?.length || 0,
+    active: (gifts || []).filter((g) => g.is_active ?? g.isActive ?? true).length,
+    inactive: (gifts || []).filter((g) => !(g.is_active ?? g.isActive ?? true)).length,
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+
+  const openEdit = (gift) => {
+    setEditing(gift);
+    setFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditing(null);
+  };
+
+  const handleSubmit = (payload) => {
+    if (editing) {
+      updateMutation.mutate(
+        { id: editing.id, payload },
+        {
+          onSuccess: () => {
+            toast.success("Gift updated");
+            closeForm();
+          },
+          onError: (err) => toast.error(err.message || "Failed to update gift"),
+        }
+      );
+    } else {
+      createMutation.mutate(payload, {
+        onSuccess: () => {
+          toast.success("Gift created");
+          closeForm();
+        },
+        onError: (err) => toast.error(err.message || "Failed to create gift"),
+      });
+    }
+  };
+
+  const handleToggle = (gift) => {
+    const next = !(gift.is_active ?? gift.isActive ?? true);
+    toggleMutation.mutate(
+      { id: gift.id, isActive: next },
+      {
+        onSuccess: () => toast.success(next ? "Gift activated" : "Gift deactivated"),
+        onError: (err) => toast.error(err.message || "Failed to update gift"),
+      }
+    );
+  };
+
+  const handleDelete = () => {
+    if (!deleting) return;
+    deleteMutation.mutate(deleting.id, {
+      onSuccess: () => {
+        toast.success("Gift deleted");
+        setDeleting(null);
+      },
+      onError: (err) => toast.error(err.message || "Failed to delete gift"),
+    });
+  };
+
+  const summary = [
+    { label: "Total gifts", count: counts.total, icon: Gift },
+    { label: "Active", count: counts.active, icon: CheckCircle },
+    { label: "Inactive", count: counts.inactive, icon: XCircle },
+  ];
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Total Gifts", count: gifts.length, icon: Gift },
-          { label: "Active", count: activeCount, icon: CheckCircle },
-          { label: "Inactive", count: gifts.length - activeCount, icon: XCircle },
-        ].map((card) => {
+      <div className="grid grid-cols-3 gap-4">
+        {summary.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="bg-surface dark:bg-d-surface rounded-xl px-5 py-4 border border-border dark:border-d-border">
+            <div
+              key={card.label}
+              className="bg-surface dark:bg-d-surface rounded-xl px-5 py-4 border border-border dark:border-d-border"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-page dark:bg-d-elevated flex items-center justify-center shrink-0">
                   <Icon size={18} className="text-text-muted dark:text-d-text-muted" />
@@ -254,13 +379,30 @@ export default function GiftsPage() {
             className="w-full pl-9 pr-4 py-2 rounded-lg text-sm bg-surface dark:bg-d-surface text-text dark:text-d-text placeholder-text-muted dark:placeholder-d-text-muted border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
           />
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary-hover transition-colors"
-        >
-          <Plus size={15} />
-          New Gift
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-surface dark:bg-d-surface rounded-lg border border-border dark:border-d-border p-0.5">
+            {["all", "active", "inactive"].map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
+                  statusFilter === s
+                    ? "bg-primary text-white"
+                    : "text-text-muted dark:text-d-text-muted hover:text-text dark:hover:text-d-text"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Plus size={14} />
+            New gift
+          </button>
+        </div>
       </div>
 
       {/* Grid */}
@@ -269,23 +411,103 @@ export default function GiftsPage() {
           <Loader2 size={28} className="mx-auto text-primary animate-spin mb-3" />
           <p className="text-sm text-text-muted dark:text-d-text-muted">Loading gifts...</p>
         </div>
-      ) : filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((gift) => (
-            <GiftCard key={gift.id} gift={gift} />
-          ))}
-        </div>
-      ) : (
+      ) : list.length === 0 ? (
         <div className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border p-16 text-center">
           <Gift size={28} className="mx-auto text-text-muted/20 dark:text-d-text-muted/20 mb-3" />
-          <p className="text-sm text-text-muted dark:text-d-text-muted">
-            {gifts.length === 0 ? "No gifts yet. Create your first gift!" : "No gifts match your search"}
-          </p>
+          <p className="text-sm text-text-muted dark:text-d-text-muted">No gifts found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {list.map((gift) => {
+            const active = gift.is_active ?? gift.isActive ?? true;
+            const iconRaw = gift.icon_url || gift.iconUrl;
+            return (
+              <div
+                key={gift.id}
+                className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border p-4 hover:border-primary/30 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <GiftImage src={iconRaw} alt={gift.name} size={56} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[14px] font-semibold text-text dark:text-d-text truncate">
+                        {gift.name || "Untitled"}
+                      </p>
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                          active
+                            ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "bg-gray-100 dark:bg-gray-500/10 text-gray-500 dark:text-gray-400"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${active ? "bg-emerald-500" : "bg-gray-400"}`}
+                        />
+                        {active ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-[12px] text-text-muted dark:text-d-text-muted">
+                      <span className="inline-flex items-center gap-1">
+                        <Coins size={12} />
+                        {gift.price ?? 0}
+                      </span>
+                      <span className="capitalize">
+                        {gift.animation_type || gift.animationType || "none"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border dark:border-d-border">
+                  <button
+                    onClick={() => handleToggle(gift)}
+                    disabled={toggleMutation.isPending && toggleMutation.variables?.id === gift.id}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-text-secondary dark:text-d-text-secondary border border-border dark:border-d-border hover:bg-hover dark:hover:bg-d-hover transition-colors disabled:opacity-50"
+                  >
+                    {toggleMutation.isPending && toggleMutation.variables?.id === gift.id ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : active ? (
+                      <XCircle size={12} />
+                    ) : (
+                      <CheckCircle size={12} />
+                    )}
+                    {active ? "Deactivate" : "Activate"}
+                  </button>
+                  <button
+                    onClick={() => openEdit(gift)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-text-secondary dark:text-d-text-secondary border border-border dark:border-d-border hover:bg-hover dark:hover:bg-d-hover transition-colors"
+                  >
+                    <Pencil size={12} />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setDeleting(gift)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors ml-auto"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Create Modal */}
-      <CreateGiftModal open={showCreate} onClose={() => setShowCreate(false)} />
+      <GiftFormModal
+        open={formOpen}
+        onClose={closeForm}
+        initial={editing}
+        onSubmit={handleSubmit}
+        isSaving={isSaving}
+      />
+
+      <ConfirmDeleteModal
+        open={!!deleting}
+        name={deleting?.name}
+        onClose={() => setDeleting(null)}
+        onConfirm={handleDelete}
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import api from "./api";
 
 class ContentService {
+  // Admin moderation
   getPosts(params = {}) {
-    const query = new URLSearchParams(params).toString();
-    return api.get(`/posts/admin/all${query ? `?${query}` : ""}`);
+    return api.get(`/posts/admin/all${api.buildQuery(params)}`);
   }
 
   approvePost(id) {

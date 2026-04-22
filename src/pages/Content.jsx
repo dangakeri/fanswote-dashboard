@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { usePosts, useApprovePost, useRejectPost } from "../hooks/useContent";
 import { useToast } from "../context/ToastContext";
+import Avatar from "../components/Avatar";
 
 const typeIcons = { photo: Image, video: Video, text: FileText };
 
@@ -186,14 +187,49 @@ export default function ContentPage() {
                 className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border overflow-hidden group hover:border-primary/30 transition-colors"
               >
                 {/* Preview area */}
-                <div className="h-40 bg-page dark:bg-d-elevated flex items-center justify-center relative">
-                  <TypeIcon size={32} strokeWidth={1.2} className="text-text-muted/20 dark:text-d-text-muted/20" />
+                <div className="h-48 bg-page dark:bg-d-elevated flex items-center justify-center relative overflow-hidden">
+                  {(() => {
+                    const rawMedia = post.media_url || post.image_url || post.video_url;
+                    const mediaUrl = rawMedia
+                      ? rawMedia.startsWith("http") ? rawMedia : `${API_BASE}${rawMedia}`
+                      : null;
+
+                    if (mediaUrl && post.type === "video") {
+                      return (
+                        <video
+                          src={mediaUrl}
+                          className="w-full h-full object-cover"
+                          controls
+                          preload="metadata"
+                          playsInline
+                        />
+                      );
+                    }
+                    if (mediaUrl && (post.type === "photo" || post.type === "image")) {
+                      return <img src={mediaUrl} alt="" className="w-full h-full object-cover" />;
+                    }
+                    if (post.type === "text" && post.text_content) {
+                      return (
+                        <p className="p-4 text-[12px] text-text-secondary dark:text-d-text-secondary line-clamp-6 text-center">
+                          {post.text_content}
+                        </p>
+                      );
+                    }
+                    return (
+                      <div className="flex flex-col items-center gap-2">
+                        <TypeIcon size={28} strokeWidth={1.2} className="text-text-muted/40 dark:text-d-text-muted/40" />
+                        <span className="text-[10px] uppercase tracking-wider text-text-muted/60 dark:text-d-text-muted/60">
+                          No media
+                        </span>
+                      </div>
+                    );
+                  })()}
                   <span
                     className={`absolute top-3 left-3 text-[10px] px-2.5 py-0.5 rounded-full font-medium capitalize ${statusStyles[post.status]}`}
                   >
                     {post.status}
                   </span>
-                  <div className="absolute top-3 right-3 flex items-center gap-1 text-[10px] text-text-muted dark:text-d-text-muted bg-surface/80 dark:bg-d-surface/80 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                  <div className="absolute top-3 right-3 flex items-center gap-1 text-[10px] text-text-muted dark:text-d-text-muted bg-surface/90 dark:bg-d-surface/90 backdrop-blur-sm px-2 py-0.5 rounded-full">
                     <VisIcon size={10} />
                     <span>{visibilityLabels[post.visibility] || post.visibility}</span>
                   </div>
@@ -207,19 +243,12 @@ export default function ContentPage() {
 
                   {/* Creator */}
                   <div className="flex items-center gap-2 mt-3">
-                    {post.creator_avatar ? (
-                      <img
-                        src={`${API_BASE}${post.creator_avatar}`}
-                        alt=""
-                        className="w-5 h-5 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-[9px] font-bold text-primary">
-                          {(post.creator_name || "?")[0].toUpperCase()}
-                        </span>
-                      </div>
-                    )}
+                    <Avatar
+                      src={post.creator_avatar}
+                      name={post.creator_name}
+                      username={post.creator_username}
+                      size={20}
+                    />
                     <span className="text-[11px] text-text-muted dark:text-d-text-muted truncate">
                       {post.creator_name || "Unknown"}{" "}
                       {post.creator_username && (

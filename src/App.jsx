@@ -8,6 +8,8 @@ import Dashboard from "./pages/Dashboard";
 import UsersPage from "./pages/Users";
 import ContentPage from "./pages/Content";
 import KYCPage from "./pages/KYC";
+import QuickiesPage from "./pages/Quickies";
+import ReportsPage from "./pages/Reports";
 import GiftsPage from "./pages/Gifts";
 import LoginPage from "./pages/Login";
 
@@ -59,7 +61,9 @@ export default function App() {
                 <Route index element={<Dashboard />} />
                 <Route path="users" element={<UsersPage />} />
                 <Route path="content" element={<ContentPage />} />
+                <Route path="quickies" element={<QuickiesPage />} />
                 <Route path="kyc" element={<KYCPage />} />
+                <Route path="reports" element={<ReportsPage />} />
                 <Route path="gifts" element={<GiftsPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />

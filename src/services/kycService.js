@@ -1,9 +1,9 @@
 import api from "./api";
 
 class KycService {
+  // Admin review
   getSubmissions(params = {}) {
-    const query = new URLSearchParams(params).toString();
-    return api.get(`/kyc/all${query ? `?${query}` : ""}`);
+    return api.get(`/kyc/all${api.buildQuery(params)}`);
   }
 
   getSubmissionById(id) {

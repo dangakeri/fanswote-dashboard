@@ -5,43 +5,51 @@ import {
   Users,
   FileText,
   ShieldCheck,
-  Gift,
   Flame,
-  Settings,
   LogOut,
   X,
   AlertTriangle,
+  Video,
+  Flag,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/users", icon: Users, label: "Users" },
-  { to: "/content", icon: FileText, label: "Content" },
-  { to: "/kyc", icon: ShieldCheck, label: "KYC" },
-  { to: "/gifts", icon: Gift, label: "Gifts" },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", section: "Overview" },
+  { to: "/users", icon: Users, label: "Users", section: "Management" },
+  { to: "/content", icon: FileText, label: "Content", section: "Moderation" },
+  { to: "/quickies", icon: Video, label: "Quickies", section: "Moderation" },
+  { to: "/kyc", icon: ShieldCheck, label: "KYC", section: "Moderation" },
+  { to: "/reports", icon: Flag, label: "Reports", section: "Moderation" },
+  { to: "/gifts", icon: Gift, label: "Gifts", section: "Economy" },
 ];
+
+function groupBySection(items) {
+  const map = new Map();
+  items.forEach((item) => {
+    const s = item.section || "";
+    if (!map.has(s)) map.set(s, []);
+    map.get(s).push(item);
+  });
+  return Array.from(map.entries());
+}
 
 function LogoutModal({ open, onClose, onConfirm }) {
   if (!open) return null;
-
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-
-      {/* Modal */}
       <div className="relative bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border shadow-xl w-full max-w-sm p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
             <AlertTriangle size={18} className="text-red-500" />
           </div>
           <div>
-            <h3 className="text-[15px] font-semibold text-text dark:text-d-text">Logout</h3>
-            <p className="text-sm text-text-muted dark:text-d-text-muted">Are you sure you want to logout?</p>
+            <h3 className="text-[15px] font-semibold text-text dark:text-d-text">Sign out</h3>
+            <p className="text-sm text-text-muted dark:text-d-text-muted">End your admin session?</p>
           </div>
         </div>
-
         <div className="flex items-center justify-end gap-2 mt-6">
           <button
             onClick={onClose}
@@ -53,7 +61,7 @@ function LogoutModal({ open, onClose, onConfirm }) {
             onClick={onConfirm}
             className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-colors"
           >
-            Logout
+            Sign out
           </button>
         </div>
       </div>
@@ -74,66 +82,67 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
 
   const closeMobile = () => setMobileOpen(false);
 
+  const grouped = groupBySection(navItems);
+
   const sidebar = (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="flex items-center gap-3 h-16 px-6 shrink-0 border-b border-border dark:border-d-border">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <Flame size={16} className="text-white" />
+      {/* Mobile-only compact header */}
+      <div className="flex items-center justify-between h-14 px-5 shrink-0 border-b border-border/60 dark:border-d-border/60 lg:hidden">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+            <Flame size={14} className="text-white" />
+          </div>
+          <span className="text-[14px] font-semibold text-text dark:text-d-text tracking-tight">
+            Fanswote <span className="text-text-muted dark:text-d-text-muted font-normal">Admin</span>
+          </span>
         </div>
-        <span className="text-[15px] font-bold text-primary tracking-tight">
-          Fanswote
-        </span>
         <button
           onClick={closeMobile}
-          className="ml-auto p-1.5 rounded-lg text-text-muted dark:text-d-text-muted hover:bg-hover dark:hover:bg-d-hover lg:hidden"
+          className="p-1.5 rounded-lg text-text-muted dark:text-d-text-muted hover:bg-hover dark:hover:bg-d-hover"
         >
           <X size={18} />
         </button>
       </div>
 
-      {/* Nav label */}
-      <p className="px-6 pt-6 pb-2 text-[11px] font-medium uppercase tracking-wider text-text-muted dark:text-d-text-muted">
-        Navigation
-      </p>
-
-      {/* Nav items */}
-      <nav className="flex-1 px-3 flex flex-col gap-0.5 overflow-y-auto">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/"}
-            onClick={closeMobile}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all relative ${
-                isActive
-                  ? "text-primary bg-primary/5 dark:bg-primary/10 border-l-[3px] border-primary ml-0 pl-[9px]"
-                  : "text-text-secondary dark:text-d-text-secondary hover:bg-hover dark:hover:bg-d-hover hover:text-text dark:hover:text-d-text"
-              }`
-            }
-          >
-            <item.icon size={18} className="shrink-0" />
-            <span>{item.label}</span>
-          </NavLink>
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-5 overflow-y-auto space-y-5">
+        {grouped.map(([section, items]) => (
+          <div key={section}>
+            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted/70 dark:text-d-text-muted/70">
+              {section}
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/"}
+                  onClick={closeMobile}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors ${
+                      isActive
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-text-secondary dark:text-d-text-secondary hover:bg-hover/60 dark:hover:bg-d-hover/60 hover:text-text dark:hover:text-d-text"
+                    }`
+                  }
+                >
+                  <item.icon size={16} strokeWidth={1.75} className="shrink-0" />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 pb-4 space-y-0.5">
-        <div className="h-px bg-border dark:bg-d-border mx-3 mb-2" />
-        <button
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] font-medium text-text-secondary dark:text-d-text-secondary hover:bg-hover dark:hover:bg-d-hover transition-all"
-        >
-          <Settings size={18} className="shrink-0" />
-          <span>Settings</span>
-        </button>
+      <div className="px-3 pb-4 pt-2 border-t border-border/60 dark:border-d-border/60">
         <button
           onClick={() => setShowLogoutModal(true)}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] font-medium text-text-secondary dark:text-d-text-secondary hover:bg-hover dark:hover:bg-d-hover hover:text-red-500 transition-all"
+          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-[13px] text-text-secondary dark:text-d-text-secondary hover:bg-hover/60 dark:hover:bg-d-hover/60 hover:text-red-500 transition-colors"
         >
-          <LogOut size={18} className="shrink-0" />
-          <span>Logout</span>
+          <LogOut size={16} strokeWidth={1.75} className="shrink-0" />
+          <span>Sign out</span>
         </button>
       </div>
     </div>
@@ -141,7 +150,6 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
 
   return (
     <>
-      {/* Logout confirmation modal */}
       <LogoutModal
         open={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
@@ -158,15 +166,15 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
 
       {/* Mobile sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen z-50 w-[240px] bg-surface dark:bg-d-surface border-r border-border dark:border-d-border shadow-xl transition-transform duration-300 lg:hidden ${
+        className={`fixed top-0 left-0 h-screen z-50 w-60 bg-surface dark:bg-d-surface border-r border-border/60 dark:border-d-border/60 shadow-xl transition-transform duration-300 lg:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {sidebar}
       </aside>
 
-      {/* Desktop sidebar */}
-      <aside className="fixed top-0 left-0 h-screen z-30 hidden lg:flex flex-col w-[240px] bg-surface dark:bg-d-surface border-r border-border dark:border-d-border">
+      {/* Desktop sidebar (starts below top bar) */}
+      <aside className="fixed top-14 left-0 bottom-0 z-30 hidden lg:flex flex-col w-60 bg-surface dark:bg-d-surface border-r border-border/60 dark:border-d-border/60">
         {sidebar}
       </aside>
     </>
