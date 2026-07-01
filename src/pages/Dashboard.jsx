@@ -11,6 +11,8 @@ import {
   Crown,
   Shield,
   UserRound,
+  Users,
+  Inbox,
 } from "lucide-react";
 import { useUsers } from "../hooks/useUsers";
 import { usePosts } from "../hooks/useContent";
@@ -43,13 +45,20 @@ function oldestPending(items, dateKey = "created_at") {
   return oldest[dateKey];
 }
 
-function MetricCard({ label, value, sub, loading }) {
+function MetricCard({ label, value, sub, loading, icon: Icon, tone = "bg-primary/10 text-primary" }) {
   return (
-    <div className="bg-surface dark:bg-d-surface rounded-xl border border-border/60 dark:border-d-border/60 p-5">
-      <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-text-muted dark:text-d-text-muted">
-        {label}
-      </p>
-      <p className="text-[28px] font-semibold text-text dark:text-d-text tracking-tight tabular-nums mt-2 leading-none">
+    <div className="group bg-surface dark:bg-d-surface rounded-2xl border border-border dark:border-d-border shadow-card dark:shadow-none p-5 hover:border-primary/40 hover:shadow-md transition-all">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[12.5px] font-medium text-text-secondary dark:text-d-text-secondary">
+          {label}
+        </p>
+        {Icon && (
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${tone}`}>
+            <Icon size={17} strokeWidth={2} />
+          </div>
+        )}
+      </div>
+      <p className="text-[30px] font-bold text-text dark:text-d-text tracking-tight tabular-nums mt-3 leading-none">
         {loading ? (
           <span className="inline-block w-16 h-7 rounded bg-page dark:bg-d-elevated animate-pulse align-middle" />
         ) : (
@@ -174,7 +183,13 @@ export default function Dashboard() {
     ...(reports.data?.reports || []).map((r) => ({
       id: `report-${r.id}`,
       type: "report",
-      title: `${r.target_type} reported — ${r.reason}`,
+      title: `${
+        r.reported_post_id
+          ? `Post #${r.reported_post_id}`
+          : r.reported_user_id
+          ? `User #${r.reported_user_id}`
+          : "Content"
+      } reported — ${r.reason}`,
       user: r.reporter_name || `User ${r.reporter_id || ""}`,
       username: r.reporter_username,
       avatar: r.reporter_avatar,
@@ -214,15 +229,15 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-end justify-between gap-4 flex-wrap border-b border-border/60 dark:border-d-border/60 pb-5">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-[22px] font-semibold text-text dark:text-d-text tracking-tight leading-tight">
+          <h1 className="text-[24px] font-bold text-text dark:text-d-text tracking-tight leading-tight">
             Overview
           </h1>
-          <p className="text-[12.5px] text-text-muted dark:text-d-text-muted mt-1 flex items-center gap-2">
+          <p className="text-[13px] text-text-muted dark:text-d-text-muted mt-1 flex items-center gap-2">
             <span>{today}</span>
-            <span className="w-1 h-1 rounded-full bg-text-muted/40 dark:bg-d-text-muted/40" />
-            <span className="inline-flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-text-muted/50 dark:bg-d-text-muted/50" />
+            <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60 animate-ping" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
@@ -234,13 +249,13 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <Link
             to="/reports"
-            className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-text-secondary dark:text-d-text-secondary border border-border/60 dark:border-d-border/60 hover:bg-hover dark:hover:bg-d-hover transition-colors"
+            className="px-3.5 py-2 rounded-lg text-[12.5px] font-semibold text-text-secondary dark:text-d-text-secondary bg-surface dark:bg-d-surface border border-border dark:border-d-border hover:bg-hover dark:hover:bg-d-hover transition-colors"
           >
             Review reports
           </Link>
           <Link
             to="/kyc"
-            className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-white bg-primary hover:bg-primary-hover transition-colors"
+            className="px-3.5 py-2 rounded-lg text-[12.5px] font-semibold text-white bg-primary hover:bg-primary-hover shadow-sm shadow-primary/25 transition-colors"
           >
             Review KYC
           </Link>
@@ -254,31 +269,39 @@ export default function Dashboard() {
           value={totalUsers}
           sub={`${creators.toLocaleString()} creators · ${admins.toLocaleString()} admins`}
           loading={users.isLoading}
+          icon={Users}
+          tone="bg-primary/10 text-primary"
         />
         <MetricCard
           label="In Moderation Queue"
           value={totalQueued}
           sub={`${postsCount + quickiesCount} content · ${reportsCount} reports · ${kycPending} KYC`}
           loading={loadingRecent}
+          icon={Inbox}
+          tone="bg-amber-500/10 text-amber-600 dark:text-amber-400"
         />
         <MetricCard
           label="Pending KYC"
           value={kycPending}
           sub={kycPending === 0 ? "Nothing to review" : "Awaiting admin review"}
           loading={kyc.isLoading}
+          icon={ShieldCheck}
+          tone="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
         />
         <MetricCard
           label="Open Reports"
           value={reportsCount}
           sub={reportsCount === 0 ? "No open reports" : "Requires a decision"}
           loading={reports.isLoading}
+          icon={Flag}
+          tone="bg-red-500/10 text-red-600 dark:text-red-400"
         />
       </div>
 
       {/* Moderation queue + Role distribution */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Moderation queue list */}
-        <div className="xl:col-span-2 bg-surface dark:bg-d-surface rounded-xl border border-border/60 dark:border-d-border/60">
+        <div className="xl:col-span-2 bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border/60 shadow-card dark:shadow-none">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 dark:border-d-border/60">
             <div>
               <h2 className="text-[13px] font-semibold text-text dark:text-d-text">Moderation queues</h2>
@@ -352,7 +375,7 @@ export default function Dashboard() {
         </div>
 
         {/* User distribution */}
-        <div className="bg-surface dark:bg-d-surface rounded-xl border border-border/60 dark:border-d-border/60">
+        <div className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border/60 shadow-card dark:shadow-none">
           <div className="px-5 py-4 border-b border-border/60 dark:border-d-border/60">
             <h2 className="text-[13px] font-semibold text-text dark:text-d-text">User breakdown</h2>
             <p className="text-[11.5px] text-text-muted dark:text-d-text-muted mt-0.5">
@@ -403,7 +426,7 @@ export default function Dashboard() {
       </div>
 
       {/* Recent activity */}
-      <div className="bg-surface dark:bg-d-surface rounded-xl border border-border/60 dark:border-d-border/60">
+      <div className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border/60 shadow-card dark:shadow-none">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 dark:border-d-border/60">
           <div>
             <h2 className="text-[13px] font-semibold text-text dark:text-d-text">Recent items requiring review</h2>

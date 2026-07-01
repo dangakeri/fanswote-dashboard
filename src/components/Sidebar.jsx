@@ -5,24 +5,32 @@ import {
   Users,
   FileText,
   ShieldCheck,
-  Flame,
   LogOut,
   X,
   AlertTriangle,
   Video,
   Flag,
   Gift,
+  BarChart3,
+  Sticker,
+  Megaphone,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { LogoMark } from "./Logo";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", section: "Overview" },
+  { to: "/analytics", icon: BarChart3, label: "Analytics", section: "Overview" },
   { to: "/users", icon: Users, label: "Users", section: "Management" },
   { to: "/content", icon: FileText, label: "Content", section: "Moderation" },
   { to: "/quickies", icon: Video, label: "Quickies", section: "Moderation" },
   { to: "/kyc", icon: ShieldCheck, label: "KYC", section: "Moderation" },
   { to: "/reports", icon: Flag, label: "Reports", section: "Moderation" },
   { to: "/gifts", icon: Gift, label: "Gifts", section: "Economy" },
+  { to: "/stickers", icon: Sticker, label: "Stickers", section: "Economy" },
+  { to: "/featured", icon: Megaphone, label: "Featuring", section: "Economy" },
+  { to: "/payouts", icon: Wallet, label: "Payouts", section: "Economy" },
 ];
 
 function groupBySection(items) {
@@ -39,10 +47,10 @@ function LogoutModal({ open, onClose, onConfirm }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border shadow-xl w-full max-w-sm p-6">
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-surface dark:bg-d-surface rounded-2xl border border-border dark:border-d-border shadow-2xl w-full max-w-sm p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
             <AlertTriangle size={18} className="text-red-500" />
           </div>
           <div>
@@ -81,34 +89,38 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
   };
 
   const closeMobile = () => setMobileOpen(false);
-
   const grouped = groupBySection(navItems);
 
   const sidebar = (
     <div className="flex flex-col h-full">
-      {/* Mobile-only compact header */}
-      <div className="flex items-center justify-between h-14 px-5 shrink-0 border-b border-border/60 dark:border-d-border/60 lg:hidden">
+      {/* Brand header */}
+      <div className="flex items-center justify-between h-16 px-5 shrink-0 border-b border-border dark:border-d-border">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-            <Flame size={14} className="text-white" />
+          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-white shadow-sm ring-1 ring-border dark:ring-white/10">
+            <LogoMark size={22} />
           </div>
-          <span className="text-[14px] font-semibold text-text dark:text-d-text tracking-tight">
-            Fanswote <span className="text-text-muted dark:text-d-text-muted font-normal">Admin</span>
-          </span>
+          <div className="leading-tight">
+            <p className="text-[15px] font-bold text-text dark:text-d-text tracking-tight">
+              Fanswote
+            </p>
+            <p className="text-[9.5px] font-semibold text-text-muted dark:text-d-text-muted uppercase tracking-[0.16em] -mt-0.5">
+              Admin Console
+            </p>
+          </div>
         </div>
         <button
           onClick={closeMobile}
-          className="p-1.5 rounded-lg text-text-muted dark:text-d-text-muted hover:bg-hover dark:hover:bg-d-hover"
+          className="p-1.5 rounded-lg text-text-muted dark:text-d-text-muted hover:bg-hover dark:hover:bg-d-hover lg:hidden"
         >
           <X size={18} />
         </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-5 overflow-y-auto space-y-5">
+      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
         {grouped.map(([section, items]) => (
           <div key={section}>
-            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted/70 dark:text-d-text-muted/70">
+            <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-muted dark:text-d-text-muted">
               {section}
             </p>
             <div className="flex flex-col gap-0.5">
@@ -119,15 +131,24 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
                   end={item.to === "/"}
                   onClick={closeMobile}
                   className={({ isActive }) =>
-                    `flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors ${
+                    `group relative flex items-center gap-3 pl-4 pr-3 py-2 rounded-lg text-[13.5px] font-medium transition-colors ${
                       isActive
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-text-secondary dark:text-d-text-secondary hover:bg-hover/60 dark:hover:bg-d-hover/60 hover:text-text dark:hover:text-d-text"
+                        ? "bg-primary/10 text-primary"
+                        : "text-text-secondary dark:text-d-text-secondary hover:bg-hover dark:hover:bg-d-hover hover:text-text dark:hover:text-d-text"
                     }`
                   }
                 >
-                  <item.icon size={16} strokeWidth={1.75} className="shrink-0" />
-                  <span>{item.label}</span>
+                  {({ isActive }) => (
+                    <>
+                      <span
+                        className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full bg-primary transition-all ${
+                          isActive ? "h-5 opacity-100" : "h-0 opacity-0"
+                        }`}
+                      />
+                      <item.icon size={17} strokeWidth={isActive ? 2.2 : 1.9} className="shrink-0" />
+                      <span>{item.label}</span>
+                    </>
+                  )}
                 </NavLink>
               ))}
             </div>
@@ -136,12 +157,12 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 pb-4 pt-2 border-t border-border/60 dark:border-d-border/60">
+      <div className="px-3 pb-4 pt-3 border-t border-border dark:border-d-border">
         <button
           onClick={() => setShowLogoutModal(true)}
-          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-[13px] text-text-secondary dark:text-d-text-secondary hover:bg-hover/60 dark:hover:bg-d-hover/60 hover:text-red-500 transition-colors"
+          className="flex items-center gap-3 w-full pl-4 pr-3 py-2 rounded-lg text-[13.5px] font-medium text-text-secondary dark:text-d-text-secondary hover:bg-red-500/10 hover:text-red-500 transition-colors"
         >
-          <LogOut size={16} strokeWidth={1.75} className="shrink-0" />
+          <LogOut size={17} strokeWidth={1.9} className="shrink-0" />
           <span>Sign out</span>
         </button>
       </div>
@@ -158,23 +179,20 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-          onClick={closeMobile}
-        />
+        <div className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" onClick={closeMobile} />
       )}
 
       {/* Mobile sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen z-50 w-60 bg-surface dark:bg-d-surface border-r border-border/60 dark:border-d-border/60 shadow-xl transition-transform duration-300 lg:hidden ${
+        className={`fixed top-0 left-0 h-screen z-50 w-64 bg-surface dark:bg-d-surface border-r border-border dark:border-d-border shadow-xl transition-transform duration-300 lg:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {sidebar}
       </aside>
 
-      {/* Desktop sidebar (starts below top bar) */}
-      <aside className="fixed top-14 left-0 bottom-0 z-30 hidden lg:flex flex-col w-60 bg-surface dark:bg-d-surface border-r border-border/60 dark:border-d-border/60">
+      {/* Desktop sidebar (full height) */}
+      <aside className="fixed top-0 left-0 bottom-0 z-30 hidden lg:flex flex-col w-64 bg-surface dark:bg-d-surface border-r border-border dark:border-d-border">
         {sidebar}
       </aside>
     </>

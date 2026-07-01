@@ -1,4 +1,4 @@
-const API_BASE = "https://api.fanswote.com";
+const API_BASE = "https://fanswote.warcare.org.uk";
 
 const palette = [
   "bg-blue-500",

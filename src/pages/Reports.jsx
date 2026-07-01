@@ -1,4 +1,5 @@
 import { useState } from "react";
+import FilterSelect from "../components/FilterSelect";
 import {
   Search,
   Flag,
@@ -19,15 +20,23 @@ import Avatar from "../components/Avatar";
 const statusConfig = {
   pending: { dot: "bg-amber-500", text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-500/10", label: "Pending" },
   reviewed: { dot: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10", label: "Reviewed" },
-  actioned: { dot: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/10", label: "Actioned" },
+  resolved: { dot: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/10", label: "Resolved" },
   dismissed: { dot: "bg-gray-500", text: "text-gray-600 dark:text-gray-400", bg: "bg-gray-50 dark:bg-gray-500/10", label: "Dismissed" },
 };
+
+// Reports reference either a reported user or a reported post (never target_type/target_id).
+function reportTarget(r) {
+  if (r.reported_post_id) return { type: "post", label: `Post #${r.reported_post_id}` };
+  if (r.reported_user_id) return { type: "user", label: `User #${r.reported_user_id}` };
+  return { type: "other", label: "—" };
+}
 
 function ReportCard({ report, onUpdate, pendingId }) {
   const [expanded, setExpanded] = useState(false);
   const [notes, setNotes] = useState(report.admin_notes || "");
   const config = statusConfig[report.status] || statusConfig.pending;
   const isPending = pendingId === report.id;
+  const target = reportTarget(report);
 
   return (
     <div
@@ -48,9 +57,9 @@ function ReportCard({ report, onUpdate, pendingId }) {
             size={36}
           />
           <div className="min-w-0">
-            <p className="font-medium text-text dark:text-d-text text-[13px] capitalize truncate">
+            <p className="font-medium text-text dark:text-d-text text-[13px] truncate">
               <Flag size={11} className="inline mr-1 text-red-500" />
-              {report.target_type} #{report.target_id} — {report.reason}
+              {target.label} — {report.reason}
             </p>
             <p className="text-[11px] text-text-muted dark:text-d-text-muted truncate">
               Reported by {report.reporter_name || `user #${report.reporter_id}`}
@@ -74,7 +83,7 @@ function ReportCard({ report, onUpdate, pendingId }) {
       {expanded && (
         <div className="border-t border-border dark:border-d-border px-5 py-5 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Detail label="Target" value={`${report.target_type} #${report.target_id}`} icon={Hash} />
+            <Detail label="Target" value={target.label} icon={Hash} />
             <Detail label="Reporter" value={report.reporter_name || `#${report.reporter_id}`} icon={User} />
             <Detail
               label="Submitted"
@@ -83,12 +92,12 @@ function ReportCard({ report, onUpdate, pendingId }) {
             />
           </div>
 
-          {report.description && (
+          {(report.details || report.description) && (
             <div className="p-3 rounded-lg bg-page dark:bg-d-elevated border border-border dark:border-d-border">
               <p className="text-[11px] uppercase tracking-wider text-text-muted dark:text-d-text-muted font-medium mb-1">
-                Description
+                Details
               </p>
-              <p className="text-[13px] text-text dark:text-d-text">{report.description}</p>
+              <p className="text-[13px] text-text dark:text-d-text">{report.details || report.description}</p>
             </div>
           )}
 
@@ -115,12 +124,12 @@ function ReportCard({ report, onUpdate, pendingId }) {
               Mark Reviewed
             </button>
             <button
-              onClick={() => onUpdate({ id: report.id, status: "actioned", adminNotes: notes })}
+              onClick={() => onUpdate({ id: report.id, status: "resolved", adminNotes: notes })}
               disabled={isPending}
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-[13px] font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
             >
               {isPending ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-              Action
+              Resolve
             </button>
             <button
               onClick={() => onUpdate({ id: report.id, status: "dismissed", adminNotes: notes })}
@@ -158,27 +167,29 @@ export default function ReportsPage() {
   const toast = useToast();
   const update = useUpdateReportStatus();
 
+  // The reports API only supports ?status (and ?page); target is filtered client-side.
   const params = {};
   if (statusFilter !== "all") params.status = statusFilter;
-  if (targetFilter !== "all") params.targetType = targetFilter;
 
   const { data, isLoading } = useReports(params);
   const reports = data?.reports || [];
 
   const filtered = reports.filter((r) => {
+    if (targetFilter !== "all" && reportTarget(r).type !== targetFilter) return false;
     const needle = search.toLowerCase();
     return (
       (r.reason || "").toLowerCase().includes(needle) ||
-      (r.description || "").toLowerCase().includes(needle) ||
+      (r.details || r.description || "").toLowerCase().includes(needle) ||
       (r.reporter_name || "").toLowerCase().includes(needle) ||
-      String(r.target_id).includes(needle)
+      String(r.reported_user_id ?? "").includes(needle) ||
+      String(r.reported_post_id ?? "").includes(needle)
     );
   });
 
   const counts = {
     pending: reports.filter((r) => r.status === "pending").length,
     reviewed: reports.filter((r) => r.status === "reviewed").length,
-    actioned: reports.filter((r) => r.status === "actioned").length,
+    resolved: reports.filter((r) => r.status === "resolved").length,
     dismissed: reports.filter((r) => r.status === "dismissed").length,
   };
 
@@ -195,7 +206,7 @@ export default function ReportsPage() {
         {[
           { label: "Pending", count: counts.pending, icon: AlertTriangle },
           { label: "Reviewed", count: counts.reviewed, icon: Flag },
-          { label: "Actioned", count: counts.actioned, icon: CheckCircle },
+          { label: "Resolved", count: counts.resolved, icon: CheckCircle },
           { label: "Dismissed", count: counts.dismissed, icon: XCircle },
         ].map((c) => {
           const Icon = c.icon;
@@ -227,42 +238,35 @@ export default function ReportsPage() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          <div className="flex bg-surface dark:bg-d-surface rounded-lg border border-border dark:border-d-border p-0.5">
-            {["all", "post", "story", "quickie", "message", "user"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setTargetFilter(t)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
-                  targetFilter === t
-                    ? "bg-primary text-white"
-                    : "text-text-muted dark:text-d-text-muted hover:text-text dark:hover:text-d-text"
-                }`}
-              >
-                {t === "all" ? "All" : t}
-              </button>
-            ))}
-          </div>
-          <div className="flex bg-surface dark:bg-d-surface rounded-lg border border-border dark:border-d-border p-0.5">
-            {["all", "pending", "reviewed", "actioned", "dismissed"].map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
-                  statusFilter === s
-                    ? "bg-primary text-white"
-                    : "text-text-muted dark:text-d-text-muted hover:text-text dark:hover:text-d-text"
-                }`}
-              >
-                {s === "all" ? "All" : s}
-              </button>
-            ))}
-          </div>
+          <FilterSelect
+            label="Type"
+            value={targetFilter}
+            onChange={setTargetFilter}
+            options={[
+              { value: "all", label: "All types" },
+              { value: "user", label: "Users" },
+              { value: "post", label: "Posts" },
+            ]}
+          />
+          <FilterSelect
+            label="Status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            align="right"
+            options={[
+              { value: "all", label: "All statuses" },
+              { value: "pending", label: "Pending" },
+              { value: "reviewed", label: "Reviewed" },
+              { value: "resolved", label: "Resolved" },
+              { value: "dismissed", label: "Dismissed" },
+            ]}
+          />
         </div>
       </div>
 
       <div className="space-y-3">
         {isLoading ? (
-          <div className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border p-16 text-center">
+          <div className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border p-16 text-center">
             <Loader2 size={28} className="mx-auto text-primary animate-spin mb-3" />
             <p className="text-sm text-text-muted dark:text-d-text-muted">Loading reports...</p>
           </div>
@@ -276,7 +280,7 @@ export default function ReportsPage() {
             />
           ))
         ) : (
-          <div className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border p-16 text-center">
+          <div className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border p-16 text-center">
             <Flag size={28} className="mx-auto text-text-muted/20 dark:text-d-text-muted/20 mb-3" />
             <p className="text-sm text-text-muted dark:text-d-text-muted">No reports found</p>
           </div>

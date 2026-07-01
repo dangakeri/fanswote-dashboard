@@ -1,6 +1,6 @@
 import BaseClass from "./BaseClass";
 
-const API_BASE = "https://api.fanswote.com";
+const API_BASE = "https://fanswote.warcare.org.uk";
 
 class ApiClient extends BaseClass {
   get baseUrl() {

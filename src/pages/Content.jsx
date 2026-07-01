@@ -1,4 +1,5 @@
 import { useState } from "react";
+import FilterSelect from "../components/FilterSelect";
 import {
   Search,
   Image,
@@ -40,7 +41,7 @@ const visibilityLabels = {
   ppv: "PPV",
 };
 
-const API_BASE = "https://api.fanswote.com";
+const API_BASE = "https://fanswote.warcare.org.uk";
 
 export default function ContentPage() {
   const [search, setSearch] = useState("");
@@ -120,41 +121,34 @@ export default function ContentPage() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {/* Type filter */}
-          <div className="flex bg-surface dark:bg-d-surface rounded-lg border border-border dark:border-d-border p-0.5">
-            {["all", "photo", "video", "text"].map((type) => (
-              <button
-                key={type}
-                onClick={() => setTypeFilter(type)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
-                  typeFilter === type
-                    ? "bg-primary text-white"
-                    : "text-text-muted dark:text-d-text-muted hover:text-text dark:hover:text-d-text"
-                }`}
-              >
-                {type === "all" ? "All" : type === "photo" ? "Photos" : type === "video" ? "Videos" : "Text"}
-              </button>
-            ))}
-          </div>
-          {/* Status filter */}
-          <div className="flex bg-surface dark:bg-d-surface rounded-lg border border-border dark:border-d-border p-0.5">
-            {["all", "pending", "published", "rejected", "draft", "scheduled"].map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setStatusFilter(s);
-                  setPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
-                  statusFilter === s
-                    ? "bg-primary text-white"
-                    : "text-text-muted dark:text-d-text-muted hover:text-text dark:hover:text-d-text"
-                }`}
-              >
-                {s === "all" ? "All" : s}
-              </button>
-            ))}
-          </div>
+          <FilterSelect
+            label="Type"
+            value={typeFilter}
+            onChange={setTypeFilter}
+            options={[
+              { value: "all", label: "All types" },
+              { value: "photo", label: "Photos" },
+              { value: "video", label: "Videos" },
+              { value: "text", label: "Text" },
+            ]}
+          />
+          <FilterSelect
+            label="Status"
+            value={statusFilter}
+            onChange={(v) => {
+              setStatusFilter(v);
+              setPage(1);
+            }}
+            align="right"
+            options={[
+              { value: "all", label: "All statuses" },
+              { value: "pending", label: "Pending" },
+              { value: "published", label: "Published" },
+              { value: "rejected", label: "Rejected" },
+              { value: "draft", label: "Draft" },
+              { value: "scheduled", label: "Scheduled" },
+            ]}
+          />
         </div>
       </div>
 
@@ -184,7 +178,7 @@ export default function ContentPage() {
             return (
               <div
                 key={post.id}
-                className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border overflow-hidden group hover:border-primary/30 transition-colors"
+                className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border overflow-hidden shadow-card dark:shadow-none group hover:border-primary/30 transition-colors"
               >
                 {/* Preview area */}
                 <div className="h-48 bg-page dark:bg-d-elevated flex items-center justify-center relative overflow-hidden">

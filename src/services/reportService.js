@@ -11,7 +11,8 @@ class ReportService {
   }
 
   updateStatus(id, status, adminNotes) {
-    return api.put(`/reports/${id}/status`, { status, adminNotes });
+    // API expects snake_case admin_notes per the admin API spec
+    return api.put(`/reports/${id}/status`, { status, admin_notes: adminNotes });
   }
 }
 

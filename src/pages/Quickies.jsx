@@ -1,4 +1,5 @@
 import { useState } from "react";
+import FilterSelect from "../components/FilterSelect";
 import {
   Search,
   Video,
@@ -17,13 +18,13 @@ import { useToast } from "../context/ToastContext";
 import Avatar from "../components/Avatar";
 
 const statusStyles = {
-  published: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10",
+  approved: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10",
   pending: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10",
   rejected: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10",
   draft: "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10",
 };
 
-const API_BASE = "https://api.fanswote.com";
+const API_BASE = "https://fanswote.warcare.org.uk";
 
 export default function QuickiesPage() {
   const [search, setSearch] = useState("");
@@ -64,17 +65,22 @@ export default function QuickiesPage() {
   };
 
   const handleReject = (id) => {
+    const reason = window.prompt("Reason for rejecting this quickie?");
+    if (reason === null) return; // cancelled
     setActionLoadingId(id);
-    reject.mutate(id, {
-      onSuccess: () => {
-        toast.success("Quickie rejected");
-        setActionLoadingId(null);
-      },
-      onError: (err) => {
-        toast.error(err.message || "Failed to reject quickie");
-        setActionLoadingId(null);
-      },
-    });
+    reject.mutate(
+      { id, reason: reason.trim() },
+      {
+        onSuccess: () => {
+          toast.success("Quickie rejected");
+          setActionLoadingId(null);
+        },
+        onError: (err) => {
+          toast.error(err.message || "Failed to reject quickie");
+          setActionLoadingId(null);
+        },
+      }
+    );
   };
 
   return (
@@ -91,24 +97,21 @@ export default function QuickiesPage() {
             className="w-full pl-9 pr-4 py-2 rounded-lg text-sm bg-surface dark:bg-d-surface text-text dark:text-d-text placeholder-text-muted dark:placeholder-d-text-muted border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
           />
         </div>
-        <div className="flex bg-surface dark:bg-d-surface rounded-lg border border-border dark:border-d-border p-0.5">
-          {["all", "pending", "published", "rejected"].map((s) => (
-            <button
-              key={s}
-              onClick={() => {
-                setStatusFilter(s);
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
-                statusFilter === s
-                  ? "bg-primary text-white"
-                  : "text-text-muted dark:text-d-text-muted hover:text-text dark:hover:text-d-text"
-              }`}
-            >
-              {s === "all" ? "All" : s}
-            </button>
-          ))}
-        </div>
+        <FilterSelect
+          label="Status"
+          value={statusFilter}
+          onChange={(v) => {
+            setStatusFilter(v);
+            setPage(1);
+          }}
+          align="right"
+          options={[
+            { value: "all", label: "All statuses" },
+            { value: "pending", label: "Pending" },
+            { value: "approved", label: "Approved" },
+            { value: "rejected", label: "Rejected" },
+          ]}
+        />
       </div>
 
       {isLoading && (
@@ -132,11 +135,16 @@ export default function QuickiesPage() {
             return (
               <div
                 key={q.id}
-                className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border overflow-hidden hover:border-primary/30 transition-colors"
+                className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border overflow-hidden shadow-card dark:shadow-none hover:border-primary/30 transition-colors"
               >
                 <div className="h-64 bg-page dark:bg-d-elevated flex items-center justify-center relative overflow-hidden">
                   {(() => {
-                    const rawVideo = q.video_url || q.media_url;
+                    const rawVideo =
+                      q.video_url_720 ||
+                      q.video_url_480 ||
+                      q.video_url_360 ||
+                      q.video_url ||
+                      q.media_url;
                     const videoUrl = rawVideo
                       ? rawVideo.startsWith("http") ? rawVideo : `${API_BASE}${rawVideo}`
                       : null;

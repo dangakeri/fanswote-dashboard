@@ -10,8 +10,8 @@ class QuickieService {
     return api.put(`/quickies/admin/${id}/approve`);
   }
 
-  reject(id) {
-    return api.put(`/quickies/admin/${id}/reject`);
+  reject(id, reason) {
+    return api.put(`/quickies/admin/${id}/reject`, { reason });
   }
 }
 

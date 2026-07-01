@@ -5,23 +5,13 @@ class GiftService {
     return api.get(`/gifts${api.buildQuery(params)}`);
   }
 
+  // POST /gifts { name, icon_url, animation_type, price }
   create(payload) {
-    const form = new FormData();
-    Object.entries(payload).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) form.append(key, value);
-    });
-    return api.upload("/gifts", form, "POST");
+    return api.post("/gifts", payload);
   }
 
+  // PUT /gifts/:id { name?, icon_url?, animation_type?, price?, is_active? }
   update(id, payload) {
-    const hasFile = payload.icon instanceof File;
-    if (hasFile) {
-      const form = new FormData();
-      Object.entries(payload).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) form.append(key, value);
-      });
-      return api.upload(`/gifts/${id}`, form, "PUT");
-    }
     return api.put(`/gifts/${id}`, payload);
   }
 

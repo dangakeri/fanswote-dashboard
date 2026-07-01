@@ -21,19 +21,20 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-page dark:bg-d-page">
-      <TopBar onMenuClick={() => setMobileOpen(true)} />
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
-      <div className="lg:ml-60 pt-14 min-h-screen flex flex-col">
-        <main className="flex-1 px-6 lg:px-8 py-6">
+      <div className="lg:ml-64 min-h-screen flex flex-col">
+        <TopBar onMenuClick={() => setMobileOpen(true)} />
+
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 pt-[78px]">
           {/* Shared page header (Dashboard owns its own) */}
           {!isDashboard && meta.title && (
             <div className="mb-6">
-              <h1 className="text-[20px] font-semibold text-text dark:text-d-text tracking-tight">
+              <h1 className="text-[22px] font-bold text-text dark:text-d-text tracking-tight leading-tight">
                 {meta.title}
               </h1>
               {meta.subtitle && (
-                <p className="text-[12.5px] text-text-muted dark:text-d-text-muted mt-0.5">
+                <p className="text-[13px] text-text-muted dark:text-d-text-muted mt-1">
                   {meta.subtitle}
                 </p>
               )}

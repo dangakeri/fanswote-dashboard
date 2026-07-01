@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import FilterSelect from "../components/FilterSelect";
 import {
   Search, ChevronLeft, ChevronRight, Loader2, ChevronDown,
 } from "lucide-react";
@@ -105,25 +106,22 @@ export default function UsersPage() {
           />
         </div>
 
-        <div className="flex bg-surface dark:bg-d-surface rounded-lg border border-border dark:border-d-border p-0.5">
-          {["all", "user", "creator", "admin"].map((role) => (
-            <button
-              key={role}
-              onClick={() => setRoleFilter(role)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
-                roleFilter === role
-                  ? "bg-primary text-white"
-                  : "text-text-muted dark:text-d-text-muted hover:text-text dark:hover:text-d-text"
-              }`}
-            >
-              {role === "all" ? "All" : role + "s"}
-            </button>
-          ))}
-        </div>
+        <FilterSelect
+          label="Role"
+          value={roleFilter}
+          onChange={setRoleFilter}
+          align="right"
+          options={[
+            { value: "all", label: "All roles" },
+            { value: "user", label: "Users" },
+            { value: "creator", label: "Creators" },
+            { value: "admin", label: "Admins" },
+          ]}
+        />
       </div>
 
       {/* Table */}
-      <div className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border overflow-hidden">
+      <div className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border overflow-hidden shadow-card dark:shadow-none">
         <div className="px-5 py-3.5 border-b border-border dark:border-d-border">
           <h3 className="text-sm font-semibold text-text dark:text-d-text">Users ({filtered.length})</h3>
         </div>

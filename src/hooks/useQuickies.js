@@ -26,7 +26,7 @@ export function useApproveQuickie() {
 export function useRejectQuickie() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id) => quickieService.reject(id),
+    mutationFn: ({ id, reason }) => quickieService.reject(id, reason),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["quickies"] }),
   });
 }

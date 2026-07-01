@@ -1,4 +1,5 @@
 import { useState } from "react";
+import FilterSelect from "../components/FilterSelect";
 import {
   Search, ShieldCheck, ShieldX, Clock, CheckCircle, XCircle, Eye,
   FileText, Calendar, ChevronDown, ChevronUp, Hash, User, Mail, X, Loader2,
@@ -7,7 +8,7 @@ import { useKycSubmissions, useApproveKyc, useRejectKyc } from "../hooks/useKyc"
 import { useToast } from "../context/ToastContext";
 import Avatar from "../components/Avatar";
 
-const API_BASE = "https://api.fanswote.com";
+const API_BASE = "https://fanswote.warcare.org.uk";
 
 const statusConfig = {
   pending: { dot: "bg-amber-500", text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-500/10", label: "Pending" },
@@ -65,7 +66,7 @@ function RejectModal({ open, onClose, onConfirm, isLoading }) {
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border shadow-xl w-full max-w-md p-6 space-y-4">
+      <div className="relative bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border shadow-xl w-full max-w-md p-6 space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
             <XCircle size={20} className="text-red-500" />
@@ -327,27 +328,24 @@ export default function KYCPage() {
             className="w-full pl-9 pr-4 py-2 rounded-lg text-sm bg-surface dark:bg-d-surface text-text dark:text-d-text placeholder-text-muted dark:placeholder-d-text-muted border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
           />
         </div>
-        <div className="flex bg-surface dark:bg-d-surface rounded-lg border border-border dark:border-d-border p-0.5">
-          {["all", "pending", "approved", "rejected"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
-                statusFilter === s
-                  ? "bg-primary text-white"
-                  : "text-text-muted dark:text-d-text-muted hover:text-text dark:hover:text-d-text"
-              }`}
-            >
-              {s === "all" ? "All" : s}
-            </button>
-          ))}
-        </div>
+        <FilterSelect
+          label="Status"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          align="right"
+          options={[
+            { value: "all", label: "All statuses" },
+            { value: "pending", label: "Pending" },
+            { value: "approved", label: "Approved" },
+            { value: "rejected", label: "Rejected" },
+          ]}
+        />
       </div>
 
       {/* Cards */}
       <div className="space-y-3">
         {isLoading ? (
-          <div className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border p-16 text-center">
+          <div className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border p-16 text-center">
             <Loader2 size={28} className="mx-auto text-primary animate-spin mb-3" />
             <p className="text-sm text-text-muted dark:text-d-text-muted">Loading submissions...</p>
           </div>
@@ -363,7 +361,7 @@ export default function KYCPage() {
             />
           ))
         ) : (
-          <div className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border p-16 text-center">
+          <div className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border p-16 text-center">
             <ShieldCheck size={28} className="mx-auto text-text-muted/20 dark:text-d-text-muted/20 mb-3" />
             <p className="text-sm text-text-muted dark:text-d-text-muted">No submissions found</p>
           </div>

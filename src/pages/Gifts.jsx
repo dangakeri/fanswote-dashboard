@@ -1,4 +1,5 @@
 import { useState } from "react";
+import FilterSelect from "../components/FilterSelect";
 import {
   Search,
   Gift,
@@ -7,7 +8,6 @@ import {
   Trash2,
   Loader2,
   X,
-  Upload,
   Coins,
   CheckCircle,
   XCircle,
@@ -21,7 +21,7 @@ import {
 } from "../hooks/useGifts";
 import { useToast } from "../context/ToastContext";
 
-const API_BASE = "https://api.fanswote.com";
+const API_BASE = "https://fanswote.warcare.org.uk";
 
 const resolveIconUrl = (raw) => {
   if (!raw || typeof raw !== "string") return null;
@@ -61,35 +61,30 @@ function GiftFormModal({ open, onClose, initial, onSubmit, isSaving }) {
     price: initial?.price ?? "",
     animation_type: initial?.animation_type || initial?.animationType || "none",
     is_active: initial?.is_active ?? initial?.isActive ?? true,
-    icon: null,
+    icon_url: initial?.icon_url || initial?.iconUrl || "",
   }));
-  const iconUrl = initial?.icon_url || initial?.iconUrl;
-  const [preview, setPreview] = useState(resolveIconUrl(iconUrl));
 
   if (!open) return null;
 
-  const handleFile = (file) => {
-    if (!file) return;
-    setForm((f) => ({ ...f, icon: file }));
-    setPreview(URL.createObjectURL(file));
-  };
+  const preview = resolveIconUrl(form.icon_url);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // API expects a JSON body with icon_url (not a file upload)
     const payload = {
       name: form.name,
       price: Number(form.price),
       animation_type: form.animation_type,
       is_active: form.is_active,
     };
-    if (form.icon) payload.icon = form.icon;
+    if (form.icon_url.trim()) payload.icon_url = form.icon_url.trim();
     onSubmit(payload);
   };
 
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border shadow-xl w-full max-w-md">
+      <div className="relative bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border dark:border-d-border">
           <h3 className="text-[15px] font-semibold text-text dark:text-d-text">
             {initial ? "Edit gift" : "New gift"}
@@ -103,7 +98,7 @@ function GiftFormModal({ open, onClose, initial, onSubmit, isSaving }) {
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
-          {/* Icon uploader */}
+          {/* Icon URL */}
           <div className="flex items-center gap-4">
             {preview ? (
               <img
@@ -112,20 +107,22 @@ function GiftFormModal({ open, onClose, initial, onSubmit, isSaving }) {
                 className="w-16 h-16 rounded-lg object-cover border border-border dark:border-d-border"
               />
             ) : (
-              <div className="w-16 h-16 rounded-lg bg-page dark:bg-d-elevated border border-border dark:border-d-border flex items-center justify-center">
+              <div className="w-16 h-16 rounded-lg bg-page dark:bg-d-elevated border border-border dark:border-d-border flex items-center justify-center shrink-0">
                 <Gift size={22} className="text-text-muted/40 dark:text-d-text-muted/40" />
               </div>
             )}
-            <label className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border dark:border-d-border text-[13px] font-medium text-text dark:text-d-text cursor-pointer hover:bg-hover dark:hover:bg-d-hover transition-colors">
-              <Upload size={14} />
-              {preview ? "Change icon" : "Upload icon"}
+            <div className="flex-1 space-y-1.5">
+              <label className="block text-[11px] uppercase tracking-wider text-text-muted dark:text-d-text-muted font-medium">
+                Icon URL
+              </label>
               <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleFile(e.target.files?.[0])}
+                type="text"
+                value={form.icon_url}
+                onChange={(e) => setForm({ ...form, icon_url: e.target.value })}
+                placeholder="/uploads/gifts/rose.png or https://…"
+                className="w-full px-3 py-2 rounded-lg text-sm bg-page dark:bg-d-elevated text-text dark:text-d-text border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
               />
-            </label>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -217,7 +214,7 @@ function ConfirmDeleteModal({ open, name, onClose, onConfirm, isLoading }) {
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border shadow-xl w-full max-w-sm p-6">
+      <div className="relative bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border shadow-xl w-full max-w-sm p-6">
         <h3 className="text-[15px] font-semibold text-text dark:text-d-text">Delete gift?</h3>
         <p className="text-sm text-text-muted dark:text-d-text-muted mt-1">
           {name ? `"${name}" will be removed.` : "This gift will be removed."} This action cannot be undone.
@@ -380,21 +377,16 @@ export default function GiftsPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex bg-surface dark:bg-d-surface rounded-lg border border-border dark:border-d-border p-0.5">
-            {["all", "active", "inactive"].map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
-                  statusFilter === s
-                    ? "bg-primary text-white"
-                    : "text-text-muted dark:text-d-text-muted hover:text-text dark:hover:text-d-text"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          <FilterSelect
+            label="Status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: "all", label: "All gifts" },
+              { value: "active", label: "Active" },
+              { value: "inactive", label: "Inactive" },
+            ]}
+          />
           <button
             onClick={openCreate}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary/90 transition-colors"
@@ -407,12 +399,12 @@ export default function GiftsPage() {
 
       {/* Grid */}
       {isLoading ? (
-        <div className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border p-16 text-center">
+        <div className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border p-16 text-center">
           <Loader2 size={28} className="mx-auto text-primary animate-spin mb-3" />
           <p className="text-sm text-text-muted dark:text-d-text-muted">Loading gifts...</p>
         </div>
       ) : list.length === 0 ? (
-        <div className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border p-16 text-center">
+        <div className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border p-16 text-center">
           <Gift size={28} className="mx-auto text-text-muted/20 dark:text-d-text-muted/20 mb-3" />
           <p className="text-sm text-text-muted dark:text-d-text-muted">No gifts found</p>
         </div>
@@ -424,7 +416,7 @@ export default function GiftsPage() {
             return (
               <div
                 key={gift.id}
-                className="bg-surface dark:bg-d-surface rounded-xl border border-border dark:border-d-border p-4 hover:border-primary/30 transition-colors"
+                className="bg-surface dark:bg-d-surface rounded-2xl border border-border/70 dark:border-d-border p-4 hover:border-primary/30 transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <GiftImage src={iconRaw} alt={gift.name} size={56} />
