@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import FilterSelect from "../components/FilterSelect";
 import {
   Search,
@@ -11,6 +11,7 @@ import {
   Coins,
   CheckCircle,
   XCircle,
+  Upload,
 } from "lucide-react";
 import {
   useGifts,
@@ -55,6 +56,8 @@ function GiftImage({ src, alt, size = 48 }) {
   );
 }
 
+const MAX_ICON_BYTES = 512 * 1024; // 512KB — keep base64 payload small
+
 function GiftFormModal({ open, onClose, initial, onSubmit, isSaving }) {
   const [form, setForm] = useState(() => ({
     name: initial?.name || "",
@@ -63,10 +66,31 @@ function GiftFormModal({ open, onClose, initial, onSubmit, isSaving }) {
     is_active: initial?.is_active ?? initial?.isActive ?? true,
     icon_url: initial?.icon_url || initial?.iconUrl || "",
   }));
+  const [fileError, setFileError] = useState("");
+  const fileInputRef = useRef(null);
 
   if (!open) return null;
 
   const preview = resolveIconUrl(form.icon_url);
+
+  const handleFilePick = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+    setFileError("");
+    if (!file.type.startsWith("image/")) {
+      setFileError("Please choose an image file.");
+      return;
+    }
+    if (file.size > MAX_ICON_BYTES) {
+      setFileError("Image is too large (max 512KB).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setForm((prev) => ({ ...prev, icon_url: reader.result }));
+    reader.onerror = () => setFileError("Could not read that file.");
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -113,15 +137,52 @@ function GiftFormModal({ open, onClose, initial, onSubmit, isSaving }) {
             )}
             <div className="flex-1 space-y-1.5">
               <label className="block text-[11px] uppercase tracking-wider text-text-muted dark:text-d-text-muted font-medium">
-                Icon URL
+                Icon
               </label>
               <input
                 type="text"
-                value={form.icon_url}
+                value={form.icon_url.startsWith("data:") ? "" : form.icon_url}
                 onChange={(e) => setForm({ ...form, icon_url: e.target.value })}
-                placeholder="/uploads/gifts/rose.png or https://…"
-                className="w-full px-3 py-2 rounded-lg text-sm bg-page dark:bg-d-elevated text-text dark:text-d-text border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                placeholder={
+                  form.icon_url.startsWith("data:")
+                    ? "Uploaded image selected"
+                    : "/uploads/gifts/rose.png or https://…"
+                }
+                disabled={form.icon_url.startsWith("data:")}
+                className="w-full px-3 py-2 rounded-lg text-sm bg-page dark:bg-d-elevated text-text dark:text-d-text border border-border dark:border-d-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all disabled:opacity-60"
               />
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFilePick}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-text-secondary dark:text-d-text-secondary border border-border dark:border-d-border hover:bg-hover dark:hover:bg-d-hover transition-colors"
+                >
+                  <Upload size={12} />
+                  Choose file
+                </button>
+                {form.icon_url && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm({ ...form, icon_url: "" });
+                      setFileError("");
+                    }}
+                    className="text-[12px] text-text-muted dark:text-d-text-muted hover:text-red-500 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              {fileError && (
+                <p className="text-[11px] text-red-500">{fileError}</p>
+              )}
             </div>
           </div>
 
@@ -485,13 +546,15 @@ export default function GiftsPage() {
         </div>
       )}
 
-      <GiftFormModal
-        open={formOpen}
-        onClose={closeForm}
-        initial={editing}
-        onSubmit={handleSubmit}
-        isSaving={isSaving}
-      />
+      {formOpen && (
+        <GiftFormModal
+          open={formOpen}
+          onClose={closeForm}
+          initial={editing}
+          onSubmit={handleSubmit}
+          isSaving={isSaving}
+        />
+      )}
 
       <ConfirmDeleteModal
         open={!!deleting}
